@@ -37,5 +37,23 @@ def get_workout(id):
     return make_response(jsonify(workout_schema.dump(workout)), 200)
 
 
+@app.route('/workouts', methods=['POST'])
+def create_workout():
+    try:
+        data = workout_schema.load(request.get_json() or {})
+        workout = Workout(**data)
+        db.session.add(workout)
+        db.session.commit()
+    except ValidationError as e:
+        return error(e.messages, 400)
+    except ValueError as e:
+        db.session.rollback()
+        return error(str(e), 400)
+    except IntegrityError:
+        db.session.rollback()
+        return error('Database constraint failed', 400)
+    return make_response(jsonify(workout_schema.dump(workout)), 201)
+
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
