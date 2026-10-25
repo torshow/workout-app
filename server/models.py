@@ -59,3 +59,41 @@ class Workout(db.Model):
         'WorkoutExercise', back_populates='workout',
         cascade='all, delete-orphan')
     exercises = association_proxy('workout_exercises', 'exercise')
+
+    @validates('duration_minutes')
+    def validate_duration(self, key, value):
+        if value is None or value <= 0:
+            raise ValueError('Workout duration must be greater than 0 minutes.')
+        return value
+ 
+    @validates('notes')
+    def validate_notes(self, key, value):
+        if value is not None and len(value) > 500:
+            raise ValueError('Notes must be 500 characters or fewer.')
+        return value
+ 
+    def __repr__(self):
+        return f'<Workout {self.id} on {self.date}>'
+ 
+ 
+class WorkoutExercise(db.Model):
+    __tablename__ = 'workout_exercises'
+
+    __table_args__ = (
+        CheckConstraint('reps IS NULL OR reps > 0', name='ck_we_reps_positive'),
+        CheckConstraint('sets IS NULL OR sets > 0', name='ck_we_sets_positive'),
+        CheckConstraint('duration_seconds IS NULL OR duration_seconds > 0',
+                        name='ck_we_duration_positive'),
+        UniqueConstraint('workout_id', 'exercise_id', name='uq_workout_exercise'),
+    )
+ 
+    id = db.Column(db.Integer, primary_key=True)
+    workout_id = db.Column(db.Integer, db.ForeignKey('workouts.id'), nullable=False)
+    exercise_id = db.Column(db.Integer, db.ForeignKey('exercises.id'), nullable=False)
+    reps = db.Column(db.Integer)
+    sets = db.Column(db.Integer)
+    duration_seconds = db.Column(db.Integer)
+ 
+    workout = db.relationship('Workout', back_populates='workout_exercises')
+    exercise = db.relationship('Exercise', back_populates='workout_exercises')
+ 
