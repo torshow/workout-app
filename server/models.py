@@ -96,4 +96,14 @@ class WorkoutExercise(db.Model):
  
     workout = db.relationship('Workout', back_populates='workout_exercises')
     exercise = db.relationship('Exercise', back_populates='workout_exercises')
+
+    @validates('reps', 'sets', 'duration_seconds')
+    def validate_positive(self, key, value):
+        if value is not None and value <= 0:
+            raise ValueError(f'{key} must be greater than 0.')
+        return value
+ 
+    def __repr__(self):
+        return f'<WorkoutExercise workout={self.workout_id} exercise={self.exercise_id}>'
+ 
  
