@@ -3,9 +3,9 @@ from flask_migrate import Migrate
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from models import db, Workout, Exercise
-from schemas import (workout_schema, workouts_schema,
-                     exercise_schema, exercises_schema)
+from models import db, Workout, Exercise, WorkoutExercise
+from schemas import (workout_schema, workouts_schema, exercise_schema,
+                     exercises_schema, workout_exercise_schema)
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -106,6 +106,30 @@ def delete_exercise(id):
     db.session.delete(exercise)
     db.session.commit()
     return make_response('', 204)
+
+
+@app.route('/workouts/<int:workout_id>/exercises/<int:exercise_id>/workout_exercises',
+           methods=['POST'])
+def add_exercise_to_workout(workout_id, exercise_id):
+    if not get_or_404(Workout, workout_id):
+        return error('Workout not found', 404)
+    if not get_or_404(Exercise, exercise_id):
+        return error('Exercise not found', 404)
+
+    try:
+        data = workout_exercise_schema.load(request.get_json() or {})
+        we = WorkoutExercise(workout_id=workout_id, exercise_id=exercise_id, **data)
+        db.session.add(we)
+        db.session.commit()
+    except ValidationError as e:
+        return error(e.messages, 400)
+    except ValueError as e:
+        db.session.rollback()
+        return error(str(e), 400)
+    except IntegrityError:
+        db.session.rollback()
+        return error('That exercise is already in this workout', 400)
+    return make_response(jsonify(workout_exercise_schema.dump(we)), 201)
 
 
 if __name__ == '__main__':
