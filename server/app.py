@@ -54,6 +54,15 @@ def create_workout():
         return error('Database constraint failed', 400)
     return make_response(jsonify(workout_schema.dump(workout)), 201)
 
+@app.route('/workouts/<int:id>', methods=['DELETE'])
+def delete_workout(id):
+    workout = get_or_404(Workout, id)
+    if not workout:
+        return error('Workout not found', 404)
+    db.session.delete(workout)
+    db.session.commit()
+    return make_response('', 204)
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
